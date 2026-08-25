@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
             $table->foreignId('location_id')->constrained('locations')->cascadeOnDelete();
-            $table->integer('quantity')->default(0);
+            $table->unsignedInteger('quantity')->default(0);
             $table->timestamps();
 
             $table->unique(['product_id', 'location_id']);

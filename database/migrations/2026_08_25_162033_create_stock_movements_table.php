@@ -16,8 +16,8 @@ return new class extends Migration
             $table->foreignId('product_id')->constrained()->cascadeOnDelete();
             $table->foreignId('source_location_id')->nullable()->constrained('locations')->nullOnDelete();
             $table->foreignId('destination_location_id')->nullable()->constrained('locations')->nullOnDelete();
-            $table->integer('quantity');
-            $table->string('type');
+            $table->unsignedInteger('quantity');
+            $table->enum('type', ['receive', 'transfer', 'dispatch']);
             $table->string('reference_number')->nullable();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->timestamps();
