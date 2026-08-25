@@ -1,4 +1,20 @@
 services:
+  app:
+    image: webdevops/php-nginx:8.4
+    environment:
+      - WEB_DOCUMENT_ROOT=/app/public
+      - PHP_DISPLAY_ERRORS=1
+    working_dir: /app
+    volumes:
+      - .:/app
+    ports:
+      - "8000:80"
+    networks:
+      - sail
+    depends_on:
+      - pgsql
+      - redis
+
   pgsql:
     image: postgres:15
     environment:
@@ -20,6 +36,18 @@ services:
       - sail-redis:/data
     networks:
       - sail
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    ports:
+      - "5050:80"
+    networks:
+      - sail
+    depends_on:
+      - pgsql
 
 networks:
   sail:
