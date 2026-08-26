@@ -9,6 +9,10 @@ use App\Repositories\Interfaces\WarehouseRepositoryInterface;
 use App\Repositories\WarehouseRepository;
 use App\Repositories\Interfaces\LocationRepositoryInterface;
 use App\Repositories\LocationRepository;
+use App\Repositories\Interfaces\InventoryRepositoryInterface;
+use App\Repositories\InventoryRepository;
+use App\Repositories\Interfaces\StockMovementRepositoryInterface;
+use App\Repositories\StockMovementRepository;
 
 class RepositoryServiceProvider extends ServiceProvider
 {
@@ -20,6 +24,8 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(ProductRepositoryInterface::class, ProductRepository::class);
         $this->app->bind(WarehouseRepositoryInterface::class, WarehouseRepository::class);
         $this->app->bind(LocationRepositoryInterface::class, LocationRepository::class);
+        $this->app->bind(InventoryRepositoryInterface::class, InventoryRepository::class);
+        $this->app->bind(StockMovementRepositoryInterface::class, StockMovementRepository::class);
     }
 
     /**

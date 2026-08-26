@@ -10,6 +10,8 @@ Route::post('/auth/register', [AuthController::class, 'register']);
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\LocationController;
+use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\StockMovementController;
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/user', function (Request $request) {
@@ -21,6 +23,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::apiResource('products', ProductController::class)->only(['index', 'show']);
         Route::apiResource('warehouses', WarehouseController::class)->only(['index', 'show']);
         Route::apiResource('locations', LocationController::class)->only(['index', 'show']);
+        
+        Route::get('/inventory', [InventoryController::class, 'index']);
+        
+        Route::post('/stock-movements', [StockMovementController::class, 'store']);
     });
 
     // Only for admin
