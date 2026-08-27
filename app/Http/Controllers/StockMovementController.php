@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StockMovementIndexRequest;
 use App\Http\Requests\StockMovementRequest;
 use App\Http\Resources\StockMovementResource;
 use App\Services\StockMovementService;
@@ -17,6 +18,19 @@ class StockMovementController extends Controller
     public function __construct(StockMovementService $stockMovementService)
     {
         $this->stockMovementService = $stockMovementService;
+    }
+
+    /**
+     * Display a listing of stock movements.
+     */
+    public function index(StockMovementIndexRequest $request): \Illuminate\Http\Resources\Json\AnonymousResourceCollection
+    {
+        $filters = $request->validated();
+        $perPage = (int) $request->query('per_page', 15);
+
+        $movements = $this->stockMovementService->getStockMovements($filters, $perPage);
+
+        return StockMovementResource::collection($movements);
     }
 
     /**

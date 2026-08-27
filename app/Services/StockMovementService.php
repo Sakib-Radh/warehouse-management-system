@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Models\Inventory;
 use App\Models\StockMovement;
 use App\Repositories\Interfaces\StockMovementRepositoryInterface;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
@@ -96,5 +97,13 @@ class StockMovementService extends BaseService
             $this->updateInventory($productId, $data['source_location_id'], -$qty);
             $this->updateInventory($productId, $data['destination_location_id'], $qty);
         }
+    }
+
+    /**
+     * Get paginated and filtered stock movements.
+     */
+    public function getStockMovements(array $filters, int $perPage = 15): LengthAwarePaginator
+    {
+        return $this->stockMovementRepository->getFiltered($filters, $perPage);
     }
 }

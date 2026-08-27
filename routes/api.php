@@ -26,6 +26,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         
         Route::get('/inventory', [InventoryController::class, 'index']);
         
+        Route::get('/stock-movements', [StockMovementController::class, 'index']);
         Route::post('/stock-movements', [StockMovementController::class, 'store']);
     });
 
