@@ -1,58 +1,71 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Warehouse Management System (WMS) Backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+This repository contains the backend for the Warehouse Management System, built with Laravel 11. It provides a robust set of RESTful APIs for managing products, warehouses, locations, and real-time inventory tracking.
 
-## About Laravel
+## Key Features
+- **Products, Warehouses, & Locations CRUD**: Complete management APIs for core domain entities.
+- **Stock Movements**: Handles `receive`, `dispatch`, and `transfer` operations accurately.
+- **Concurrency & Race Condition Handling**: Uses PostgreSQL pessimistic locking (`lockForUpdate()`) within Database Transactions to prevent negative inventory when multiple dispatch operations occur simultaneously.
+- **High-Performance Caching**: Redis is integrated into the Inventory Read API (`GET /api/inventory`), caching paginated results to reduce database load. The cache is invalidated automatically upon any new stock movement.
+- **Background Processing**: A Redis-backed queue asynchronously processes low-stock alerts during dispatch/transfer operations, preventing slow response times for the end-user.
+- **Role-Based Access**: Distinguishes between `admin` (full access) and `warehouse_operator` (read-only for entities, but can perform stock movements).
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Requirements
+- PHP 8.2+
+- Composer
+- Docker (for Laravel Sail)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Setup Instructions
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+1. **Clone and Install Dependencies**
+   ```bash
+   git clone <repository-url>
+   cd warehouse-management-system
+   composer install
+   ```
 
-## Learning Laravel
+2. **Environment Configuration**
+   Copy the example `.env` file and ensure your database and Redis configurations are correct.
+   ```bash
+   cp .env.example .env
+   ```
+   *Make sure `QUEUE_CONNECTION=redis` and `CACHE_STORE=redis` are set in your `.env`.*
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+3. **Start Laravel Sail (Docker)**
+   This project uses Laravel Sail to spin up PostgreSQL and Redis containers.
+   ```bash
+   ./vendor/bin/sail up -d
+   ```
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+4. **Run Migrations & Generate Key**
+   ```bash
+   ./vendor/bin/sail artisan key:generate
+   ./vendor/bin/sail artisan migrate
+   ```
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+5. **Start the Queue Worker**
+   To process the asynchronous low-stock alerts, start the queue worker in a separate terminal:
+   ```bash
+   ./vendor/bin/sail artisan queue:work
+   ```
 
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
+## Running Tests
+Automated tests are included for CRUD operations, stock movement logic, and the low-stock alert background jobs.
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+./vendor/bin/sail artisan test
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## Concurrency Design Decisions
 
-## Contributing
+Handling concurrent stock dispatches is a critical requirement in a WMS to prevent negative inventory. This system solves race conditions using **Pessimistic Locking**:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+When a `dispatch` or `transfer` occurs, the `StockMovementService` wraps the operation in a `DB::transaction()`. It queries the `Inventory` model using `->lockForUpdate()`. 
 
-## Code of Conduct
+```php
+$inventory = Inventory::where('product_id', $productId)
+    ->where('location_id', $locationId)
+    ->lockForUpdate()
+    ->first();
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+If User A and User B attempt to dispatch the same product simultaneously, PostgreSQL will lock that specific inventory row for User A. User B's request will block and wait until User A's transaction commits. Once User A finishes, User B reads the *newly updated* quantity, and if it falls below zero, an Exception is safely thrown, completely preventing negative stock.
