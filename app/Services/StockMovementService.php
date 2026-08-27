@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\Inventory;
 use App\Models\StockMovement;
+use App\Jobs\CheckLowStockAlertJob;
 use App\Repositories\Interfaces\StockMovementRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +39,10 @@ class StockMovementService extends BaseService
 
             $movement = $this->stockMovementRepository->create($data);
             $this->inventoryService->invalidateCache();
+
+            if (in_array($type, ['dispatch', 'transfer'])) {
+                CheckLowStockAlertJob::dispatch($productId);
+            }
 
             return $movement;
         });
